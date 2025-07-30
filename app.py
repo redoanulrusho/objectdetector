@@ -1,13 +1,9 @@
 import cv2
 import numpy as np
 import streamlit as st
-from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
+from PIL import Image
 
-st.title("📲 Live HSV Object Detection (Front/Back Camera)")
-
-# Camera selection
-camera_choice = st.selectbox("📷 Select Camera", ["Front Camera", "Back Camera"])
-facing_mode = "user" if camera_choice == "Front Camera" else "environment"
+st.title("📸 HSV Object Detection on Captured Image by RUSHO")
 
 # HSV sliders
 l_h = st.slider("Lower H", 0, 179, 0)
@@ -18,49 +14,28 @@ u_h = st.slider("Upper H", 0, 179, 179)
 u_s = st.slider("Upper S", 0, 255, 255)
 u_v = st.slider("Upper V", 0, 255, 255)
 
-# WebRTC Configuration (STUN + TURN)
-RTC_CONFIGURATION = RTCConfiguration(
-    {
-        "iceServers": [
-            {"urls": ["stun:stun.l.google.com:19302"]},  # Google STUN
-            {
-                "urls": [
-                    "turn:openrelay.metered.ca:80",
-                    "turn:openrelay.metered.ca:443",
-                    "turn:openrelay.metered.ca:443?transport=tcp"
-                ],
-                "username": "openrelayproject",
-                "credential": "openrelayproject"
-            }
-        ]
-    }
-)
+# Capture image input
+camera_image = st.camera_input("📷 Capture Image")
 
-class VideoProcessor(VideoProcessorBase):
-    def recv(self, frame):
-        img = frame.to_ndarray(format="bgr24")
+if camera_image:
+    # Read the image from the camera
+    img = Image.open(camera_image)
+    frame = np.array(img)
 
-        # Debugging: Check if frame is empty
-        if img is None:
-            st.error("Video feed is not available.")
-        else:
-            st.write(f"Video feed shape: {img.shape}")  # Display the dimensions of the frame
+    # Convert to HSV
+    hsv = cv2.cvtColor(frame, cv2.COLOR_RGB2HSV)
 
-        # Convert to HSV
-        hsv = cv2.cvtColor(img, cv2.COLOR_BGR2HSV)
+    # Define HSV range
+    lower_bound = np.array([l_h, l_s, l_v])
+    upper_bound = np.array([u_h, u_s, u_v])
 
-        # Mask
-        lower_bound = np.array([l_h, l_s, l_v])
-        upper_bound = np.array([u_h, u_s, u_v])
-        mask = cv2.inRange(hsv, lower_bound, upper_bound)
-        res = cv2.bitwise_and(img, img, mask=mask)
+    # Create mask based on HSV range
+    mask = cv2.inRange(hsv, lower_bound, upper_bound)
 
-        return res
+    # Apply the mask on the original image
+    res = cv2.bitwise_and(frame, frame, mask=mask)
 
-# WebRTC Stream with better video constraints
-webrtc_streamer(
-    key="example",
-    video_processor_factory=VideoProcessor,
-    rtc_configuration=RTC_CONFIGURATION,
-    media_stream_constraints={"video": {"facingMode": facing_mode, "width": 640, "height": 480}, "audio": False},
-)
+    # Display original image, mask, and result
+    st.image(frame, caption="Original Image", channels="RGB")
+    st.image(mask, caption="Mask", channels="GRAY")
+    st.image(res, caption="Filtered Result", channels="RGB")
