@@ -3,7 +3,7 @@ import numpy as np
 import streamlit as st
 from streamlit_webrtc import webrtc_streamer, VideoProcessorBase, RTCConfiguration
 
-st.title("📲 Live HSV Object Detection (Front/Back Camera Switch)")
+st.title("📲 Live HSV Object Detection (Front/Back Camera)")
 
 # Camera selection
 camera_choice = st.selectbox("📷 Select Camera", ["Front Camera", "Back Camera"])
@@ -18,10 +18,19 @@ u_h = st.slider("Upper H", 0, 179, 179)
 u_s = st.slider("Upper S", 0, 255, 255)
 u_v = st.slider("Upper V", 0, 255, 255)
 
-# WebRTC Configuration
-rtc_config = RTCConfiguration({
-    "iceServers": [{"urls": ["stun:stun.l.google.com:19302"]}],
-})
+# WebRTC Configuration (STUN + TURN to avoid connection issues)
+RTC_CONFIGURATION = RTCConfiguration(
+    {
+        "iceServers": [
+            {"urls": ["stun:stun.l.google.com:19302"]},  # Google STUN
+            {
+                "urls": ["turn:openrelay.metered.ca:80"],
+                "username": "openrelayproject",
+                "credential": "openrelayproject"
+            }
+        ]
+    }
+)
 
 class VideoProcessor(VideoProcessorBase):
     def recv(self, frame):
@@ -38,10 +47,10 @@ class VideoProcessor(VideoProcessorBase):
 
         return res
 
-# WebRTC Stream with dynamic camera selection
+# WebRTC Stream
 webrtc_streamer(
     key="example",
     video_processor_factory=VideoProcessor,
-    rtc_configuration=rtc_config,
+    rtc_configuration=RTC_CONFIGURATION,
     media_stream_constraints={"video": {"facingMode": facing_mode}, "audio": False},
 )
