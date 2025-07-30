@@ -3,16 +3,19 @@ import numpy as np
 import streamlit as st
 from PIL import Image
 
-st.title("📸 HSV Object Detection on Captured Image by RUSHO")
+st.title("📸 HSV Object Detection on Captured Image")
 
-# HSV sliders
-l_h = st.slider("Lower H", 0, 179, 0)
-l_s = st.slider("Lower S", 0, 255, 0)
-l_v = st.slider("Lower V", 0, 255, 0)
+# Layout: Create columns for the images and sliders
+col1, col2 = st.columns(2)
 
-u_h = st.slider("Upper H", 0, 179, 179)
-u_s = st.slider("Upper S", 0, 255, 255)
-u_v = st.slider("Upper V", 0, 255, 255)
+# HSV sliders in the sidebar for better layout
+l_h = st.sidebar.slider("Lower H", 0, 179, 0)
+l_s = st.sidebar.slider("Lower S", 0, 255, 0)
+l_v = st.sidebar.slider("Lower V", 0, 255, 0)
+
+u_h = st.sidebar.slider("Upper H", 0, 179, 179)
+u_s = st.sidebar.slider("Upper S", 0, 255, 255)
+u_v = st.sidebar.slider("Upper V", 0, 255, 255)
 
 # Capture image input
 camera_image = st.camera_input("📷 Capture Image")
@@ -35,7 +38,11 @@ if camera_image:
     # Apply the mask on the original image
     res = cv2.bitwise_and(frame, frame, mask=mask)
 
-    # Display original image, mask, and result
-    st.image(frame, caption="Original Image", channels="RGB")
-    st.image(mask, caption="Mask", channels="GRAY")
-    st.image(res, caption="Filtered Result", channels="RGB")
+    # Layout: Display images side by side
+    with col1:
+        st.image(frame, caption="Original Image", channels="RGB")
+        st.image(mask, caption="Mask", channels="GRAY")
+
+    with col2:
+        st.image(res, caption="Filtered Result", channels="RGB")
+
